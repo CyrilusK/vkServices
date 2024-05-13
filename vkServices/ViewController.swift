@@ -1,55 +1,61 @@
 import UIKit
+import Kingfisher
 
-class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class ViewController: UIViewController {
     
-    @IBOutlet weak var tableView: UITableView!
+    private let tableView = UITableView()
     
-    var services = [Service]()
+    private var services = [Service]()
+    private let manager = Manager()
     
-    func parse() {
-            let urlString = "https://publicstorage.hb.bizmrg.com/sirius/result.json"
-            guard let url = URL(string: urlString) else { return }
-            URLSession.shared.dataTask(with: url) { data, response, error in
-                if let error = error {
-                    print(error)
-                    return
-                }
-                guard let data = data else { return }
-                do {
-                    let jsonData = try JSONDecoder().decode(Response.self, from: data)
-                    let body = jsonData.body
-                    self.services = body.services
-                } catch {
-                    print(error)
-                }
-            }.resume()
-        }
-    
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return services.count
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Сервисы VK"
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor.black
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationItem.standardAppearance = appearance
+        navigationItem.scrollEdgeAppearance = appearance
+        navigationItem.compactAppearance = appearance
+        
+        view.addSubview(tableView)
+        tableView.backgroundColor = .black
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.register(TableViewCell.self, forCellReuseIdentifier: "TableViewCell")
+        loadData()
     }
     
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        tableView.frame = view.bounds
+    }
+    
+    func loadData() {
+        manager.loadServices { [weak self] services in
+            self?.services = services
+            DispatchQueue.main.sync {
+                self?.tableView.reloadData()
+            }
+        }
+    }
+}
+
+extension ViewController: UITableViewDelegate, UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        services.count
+    }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return UITableView.automaticDimension
+        75
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cellService", for: indexPath)
-        cell.textLabel?.text = services[indexPath.row].name
-        cell.detailTextLabel?.text = services[indexPath.row].description
-        cell.imageView?.image = UIImage(data: try! Data(contentsOf: URL(string: services[indexPath.row].icon_url)!))
-        cell.imageView?.contentMode = .scaleToFill
-        
-        cell.accessoryType = .disclosureIndicator
-            cell.tintColor = .gray
-        let image = UIImage(systemName: "chevron.right")?.withRenderingMode(.alwaysTemplate)
-            if let width = image?.size.width, let height = image?.size.height {
-                let disclosureImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: width, height: height))
-                disclosureImageView.image = image
-                cell.accessoryView = disclosureImageView
-            }
-        
+        let cell = tableView.dequeueReusableCell(withIdentifier: "TableViewCell", for: indexPath) as! TableViewCell
+        let tableCell = cell as TableViewCell
+        tableCell.configure(with: services[indexPath.row])
+
         return cell
     }
     
@@ -57,12 +63,4 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        tableView.delegate = self
-        tableView.dataSource = self
-        parse()
-        tableView.rowHeight = 80
-    }
 }
-

@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  vkServices
 //
-//  Created by Кирилл Кардаш on 15.07.2022.
+//  Created by Cyril Kardash on 13.09.2023.
 //
 
 import UIKit
